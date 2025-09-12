@@ -1,0 +1,15 @@
+{{ form_start(form,  {'attr': {'id': 'post-generico'}} ) }}
+    <input type="hidden" name="{{ form._token.vars.name }}" value="{{ form._token.vars.value }}">
+
+    {% for field in form %}
+        {% if field.vars.name != '_token' %}
+            <div class="mb-3">
+                {{ form_label(field, null, {'class': 'form-label'}) }}
+
+                {{ form_widget(field, {'attr': {'class': 'form-control'}}) }}
+
+                {{ form_errors(field, {'attr': {'class': 'invalid-feedback'}}) }}
+            </div>
+        {% endif %}
+    {% endfor %}
+{{ form_end(form) }}

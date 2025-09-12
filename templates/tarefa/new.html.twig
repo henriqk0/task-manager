@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nova Tarefa{% endblock %}
+
+{% block body %}
+    <h1>Cadastrar Nova Tarefa</h1>
+
+    {{ include('tarefa/_form.html.twig') }}
+
+
+    <button type="submit" form="post-generico" class="btn btn-primary">Incluir</button>
+    <a class="btn btn-secondary" href="{{ path('app_tarefa_index') }}">Voltar</a>
+{% endblock %}
