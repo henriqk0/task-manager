@@ -22,8 +22,6 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --prefer-dist --no-interaction -
 
 RUN php bin/console importmap:install
 
-RUN php bin/console doctrine:migrations:migrate
-
 EXPOSE 80
 
 # config sessoes para o container (util para alguns endpoints)
