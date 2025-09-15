@@ -2,17 +2,26 @@
 services:
 ###> doctrine/doctrine-bundle ###
   database:
-    ports:
-      - "5432"
+    platform: linux/x86_64
+    image: mysql:5.7
+    env_file:
+      - .env.local
 ###< doctrine/doctrine-bundle ###
 
-###> symfony/mailer ###
-  mailer:
-    image: axllent/mailpit
+  web:
+    build: .
     ports:
-      - "1025"
-      - "8025"
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+
+###> symfony/mailer ##
+  # mailer:
+  #   image: axllent/mailpit
+  #   ports:
+  #     - "1025"
+  #     - "8025"
+  #   environment:
+  #     MP_SMTP_AUTH_ACCEPT_ANY: 1
+  #     MP_SMTP_AUTH_ALLOW_INSECURE: 1
 ###< symfony/mailer ###

@@ -58,45 +58,45 @@ final class TarefaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_tarefa_edit', methods: ['POST'])]
-    public function edit(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager, TarefaType $tarefaType): JsonResponse
+    public function edit(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager ): JsonResponse
     {
-    try {
-        $form = $this->createForm(TarefaType::class, $tarefa);
-        $form->handleRequest($request);
+        try {
+            $form = $this->createForm(TarefaType::class, $tarefa);
+            $form->handleRequest($request);
 
-        error_log('Form submitted: ' . ($form->isSubmitted() ? 'true' : 'false'));
-        error_log('Form valid: ' . ($form->isValid() ? 'true' : 'false'));
+            error_log('Form submitted: ' . ($form->isSubmitted() ? 'true' : 'false'));
+            error_log('Form valid: ' . ($form->isValid() ? 'true' : 'false'));
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            if ($form->isSubmitted() && $form->isValid()) {
+                $entityManager->flush();
 
-            $response = [
-                'status' => 'success',
-                'message' => 'Tarefa atualizada com sucesso!',
-                'data' => [
-                    'id' => $tarefa->getId(),
-                    'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
-                    'custo' => $tarefa->getCusto(),
-                    'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
-                ],
-            ];
+                $response = [
+                    'status' => 'success',
+                    'message' => 'Tarefa atualizada com sucesso!',
+                    'data' => [
+                        'id' => $tarefa->getId(),
+                        'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
+                        'custo' => $tarefa->getCusto(),
+                        'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
+                    ],
+                ];
 
-            error_log('Enviando resposta de sucesso: ' . json_encode($response));
-            return $this->json($response);
+                error_log('Enviando resposta de sucesso: ' . json_encode($response));
+                return $this->json($response);
+            }
+
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Erro ao editar a tarefa.',
+            ], 400);
+
+        } catch (\Exception $e) {
+            error_log('Exception no controller: ' . $e->getMessage());
+            return $this->json([
+                'status' => 'error',
+                'message' => 'Erro interno do servidor: ' . $e->getMessage(),
+            ], 500);
         }
-
-        return $this->json([
-            'status' => 'error',
-            'message' => 'Erro ao editar a tarefa.',
-        ], 400);
-
-    } catch (\Exception $e) {
-        error_log('Exception no controller: ' . $e->getMessage());
-        return $this->json([
-            'status' => 'error',
-            'message' => 'Erro interno do servidor: ' . $e->getMessage(),
-        ], 500);
-    }
     }
 
     #[Route('/{id}', name: 'app_tarefa_delete', methods: ['POST'])]
