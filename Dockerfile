@@ -20,6 +20,10 @@ RUN composer clear-cache
 # RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --prefer-dist --no-autoloader --no-plugins
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --prefer-dist --no-interaction --no-scripts
 
+RUN php bin/console importmap:install
+
+RUN php bin/console doctrine:migrations:migrate
+
 EXPOSE 80
 
 # config sessoes para o container (util para alguns endpoints)
