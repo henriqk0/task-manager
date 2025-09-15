@@ -31,7 +31,7 @@ COPY docker/apache/vhost.conf /etc/apache2/sites-available/000-default.conf
 
 RUN mkdir -p /var/lib/php/sessions && chown -R www-data:www-data /var/lib/php/sessions
 
-RUN chown -R www-data:www-data var
+RUN mkdir -p var && chown -R www-data:www-data var
 
 
 CMD [ "apache2-foreground" ]
