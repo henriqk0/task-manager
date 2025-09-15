@@ -100,7 +100,30 @@ tr.avisar td {
                                 </div>
                             </div>
                         </div>
-                        {% include '/tarefa/_delete_form.html.twig' %}
+
+                        <form method="post" id="delete-form{{ tarefa.id }}" action="{{ path('app_tarefa_delete', {'id': tarefa.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ tarefa.id) }}">
+                            <button class="btn btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#deletionModalCenter{{ tarefa.id }}" style="margin-left:8px;background-color:red;color:white"><i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+
+                        <div class="modal fade" id="deletionModalCenter{{ tarefa.id }}" tabindex="-1" role="dialog" aria-labelledby="deletionModalCenterTitle" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header" style="background-color:red;">
+                                        <h5 class="modal-title" id="deletionModalLongTitle{{ tarefa.id }}" style="line-height:inherit;color: white;">Confirmação de Deleção</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Atenção ⚠️‼️ Tem certeza que quer deletar essa tarefa?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" form="delete-form{{ tarefa.id }}" class="btn btn-primary mt-0 mr-0 mb-0" style="border-color:red;background-color:red;color:white;">Sim!</button>
+                                        <button type="button" class="btn btn-secondary mb-0 mt-0" style="background-color:white;border-color:red;color:red" data-bs-dismiss="modal">Não</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             {% endfor %}
