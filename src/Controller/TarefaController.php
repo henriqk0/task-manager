@@ -17,11 +17,11 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class TarefaController extends AbstractController
 {
     #[Route(name: 'app_tarefa_index', methods: ['GET'])]
-    public function index(TarefaRepository $tarefaRepository, CsrfTokenManagerInterface $csrf, Request $request): Response
+    public function index(TarefaRepository $tarefaRepository, Request $request): Response
     {
         $tarefas = $tarefaRepository->findBy([], ['ordemDaApresentacao' => 'ASC']);
         $isAWS = !in_array($request->getHost(), ['localhost', '127.0.0.1']);
-    
+
         $forms = [];
         foreach ($tarefas as $tarefa) {
             $forms[$tarefa->getId()] = $this->createForm(TarefaType::class, $tarefa, [
@@ -30,13 +30,13 @@ final class TarefaController extends AbstractController
                 'csrf_protection' => !$isAWS,
             ])->createView();
         }
-        
+
         return $this->render('tarefa/index.html.twig', [
             'tarefas' => $tarefas,
             'forms' => $forms,
-            'isAWS' => $isAWS, 
+            'isAWS' => $isAWS,
         ]);
-    
+
     }
 
 
@@ -67,48 +67,48 @@ final class TarefaController extends AbstractController
     public function edit(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager): JsonResponse
     {
         $isAWS = !in_array($request->getHost(), ['localhost', '127.0.0.1']);
-        
+
         if ($isAWS) {
-        	// Na AWS, remover o token dos dados para evitar validação
+        	// (AWS) remover o token dos dados para evitar validação
     	    $requestData = $request->request->all();
             if (isset($requestData['tarefa']['_token'])) {
     	        unset($requestData['tarefa']['_token']);
-	        $request->request->replace($requestData);
-	    }
+                $request->request->replace($requestData);
+            }
         }
-    
+
         $form = $this->createForm(TarefaType::class, $tarefa, [
     	    'csrf_protection' => !$isAWS,
         ]);
-    
+
         $form->handleRequest($request);
-    
+
         error_log('AWS detected: ' . ($isAWS ? 'true' : 'false'));
         error_log('CSRF enabled: ' . (!$isAWS ? 'true' : 'false'));
         error_log('Request data após limpeza: ' . print_r($request->request->all(), true));
-        
+
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
-	
+
     	    return $this->json([
-		    'status' => 'success',
-		    'message' => 'Tarefa atualizada com sucesso!',
-		    'data' => [
-			'id' => $tarefa->getId(),
-			'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
-			'custo' => $tarefa->getCusto(),
-			'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
-		    ],
-	    ]);
-         }
-    
-        foreach ($form->getErrors(true) as $error) {
-	    error_log('Form error: ' . $error->getMessage());
+                'status' => 'success',
+                'message' => 'Tarefa atualizada com sucesso!',
+                'data' => [
+                'id' => $tarefa->getId(),
+                'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
+                'custo' => $tarefa->getCusto(),
+                'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
+                ],
+            ]);
         }
-    
+
+        foreach ($form->getErrors(true) as $error) {
+            error_log('Form error: ' . $error->getMessage());
+        }
+
         return $this->json([
-	    'status' => 'error',
-	    'message' => 'Formulário inválido.',
+            'status' => 'error',
+            'message' => 'Formulário inválido.',
         ], 400);
     }
 
@@ -116,8 +116,8 @@ final class TarefaController extends AbstractController
     public function delete(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager, TarefaRepository $tarefaRepository): Response
     {
         if ($this->isCsrfTokenValid('delete'.$tarefa->getId(), $request->getPayload()->getString('_token'))) {
-
             $tarefas = $tarefaRepository->alterarOrdemPosteriores($tarefa->getOrdemDaApresentacao());
+
             foreach ($tarefas as $trf) {
                 $trf->setOrdemDaApresentacao($trf->getOrdemDaApresentacao() - 1);
                 $entityManager->persist($trf);
