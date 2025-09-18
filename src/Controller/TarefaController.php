@@ -11,28 +11,32 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 #[Route('/')]
 final class TarefaController extends AbstractController
 {
     #[Route(name: 'app_tarefa_index', methods: ['GET'])]
-    public function index(TarefaRepository $tarefaRepository): Response
+    public function index(TarefaRepository $tarefaRepository, CsrfTokenManagerInterface $csrf, Request $request): Response
     {
         $tarefas = $tarefaRepository->findBy([], ['ordemDaApresentacao' => 'ASC']);
+        $isAWS = !in_array($request->getHost(), ['localhost', '127.0.0.1']);
+    
         $forms = [];
-
         foreach ($tarefas as $tarefa) {
             $forms[$tarefa->getId()] = $this->createForm(TarefaType::class, $tarefa, [
                 'action' => $this->generateUrl('app_tarefa_edit', ['id' => $tarefa->getId()]),
                 'method' => 'POST',
+                'csrf_protection' => !$isAWS,
             ])->createView();
         }
-
+        
         return $this->render('tarefa/index.html.twig', [
             'tarefas' => $tarefas,
             'forms' => $forms,
+            'isAWS' => $isAWS, 
         ]);
-
+    
     }
 
 
@@ -48,6 +52,8 @@ final class TarefaController extends AbstractController
             $entityManager->persist($tarefa);
             $entityManager->flush();
 
+	    $request->getSession()->migrate(true); // true = deletar sessão antiga; evitar o problema na AWS de dados nao mais editaveis apois criar uma entidade na sessao
+
             return $this->redirectToRoute('app_tarefa_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -58,45 +64,52 @@ final class TarefaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_tarefa_edit', methods: ['POST'])]
-    public function edit(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager ): JsonResponse
+    public function edit(Request $request, Tarefa $tarefa, EntityManagerInterface $entityManager): JsonResponse
     {
-        try {
-            $form = $this->createForm(TarefaType::class, $tarefa);
-            $form->handleRequest($request);
-
-            error_log('Form submitted: ' . ($form->isSubmitted() ? 'true' : 'false'));
-            error_log('Form valid: ' . ($form->isValid() ? 'true' : 'false'));
-
-            if ($form->isSubmitted() && $form->isValid()) {
-                $entityManager->flush();
-
-                $response = [
-                    'status' => 'success',
-                    'message' => 'Tarefa atualizada com sucesso!',
-                    'data' => [
-                        'id' => $tarefa->getId(),
-                        'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
-                        'custo' => $tarefa->getCusto(),
-                        'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
-                    ],
-                ];
-
-                error_log('Enviando resposta de sucesso: ' . json_encode($response));
-                return $this->json($response);
-            }
-
-            return $this->json([
-                'status' => 'error',
-                'message' => 'Erro ao editar a tarefa.',
-            ], 400);
-
-        } catch (\Exception $e) {
-            error_log('Exception no controller: ' . $e->getMessage());
-            return $this->json([
-                'status' => 'error',
-                'message' => 'Erro interno do servidor: ' . $e->getMessage(),
-            ], 500);
+        $isAWS = !in_array($request->getHost(), ['localhost', '127.0.0.1']);
+        
+        if ($isAWS) {
+        	// Na AWS, remover o token dos dados para evitar validação
+    	    $requestData = $request->request->all();
+            if (isset($requestData['tarefa']['_token'])) {
+    	        unset($requestData['tarefa']['_token']);
+	        $request->request->replace($requestData);
+	    }
         }
+    
+        $form = $this->createForm(TarefaType::class, $tarefa, [
+    	    'csrf_protection' => !$isAWS,
+        ]);
+    
+        $form->handleRequest($request);
+    
+        error_log('AWS detected: ' . ($isAWS ? 'true' : 'false'));
+        error_log('CSRF enabled: ' . (!$isAWS ? 'true' : 'false'));
+        error_log('Request data após limpeza: ' . print_r($request->request->all(), true));
+        
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+	
+    	    return $this->json([
+		    'status' => 'success',
+		    'message' => 'Tarefa atualizada com sucesso!',
+		    'data' => [
+			'id' => $tarefa->getId(),
+			'nomeDaTarefa' => $tarefa->getNomeDaTarefa(),
+			'custo' => $tarefa->getCusto(),
+			'dataLimite' => $tarefa->getDataLimite() ? $tarefa->getDataLimite()->format('d/m/Y') : '',
+		    ],
+	    ]);
+         }
+    
+        foreach ($form->getErrors(true) as $error) {
+	    error_log('Form error: ' . $error->getMessage());
+        }
+    
+        return $this->json([
+	    'status' => 'error',
+	    'message' => 'Formulário inválido.',
+        ], 400);
     }
 
     #[Route('/{id}', name: 'app_tarefa_delete', methods: ['POST'])]
@@ -152,3 +165,4 @@ final class TarefaController extends AbstractController
         }
     }
 }
+
